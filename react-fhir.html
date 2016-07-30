@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<!-- HTML5 Hello world by kirupa - http://www.kirupa.com/html5/getting_your_feet_wet_html5_pg1.htm -->
+<html lang="en-us">
+
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+<style type="text/css">
+
+.title {
+  font-family: 'Montserrat', sans-serif;
+  margin-top: 80px;
+  margin-bottom: 30px;
+  color: white;
+}
+
+
+svg {
+  font: 1px sans-serif;
+}
+
+.line {
+  fill: none;
+  stroke: #23fbbd;
+  stroke-width: 3.5px;
+}
+
+a:focus, a:hover {
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.tolerance {
+  fill: none;
+  stroke: black;
+  stroke-width: 1.5px;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+a {
+  color: white;
+  text-decoration: none;
+}
+
+b, strong {
+    font-weight: 700;
+    color: #b3b3b3;
+}
+
+.twitchSearchApp {
+  width: 500px
+}
+
+.fa-twitter {
+  font-size: 1.5em;
+}
+
+
+.list-group {
+  margin-left: auto;
+  margin-right: auto;
+  width: 500px;
+   background-color: #293543;
+}
+
+.list-group-item {
+   background-color: #293543;
+}
+.streamerName {
+  font-size: 2.2em;
+  font-weight: bold;
+}
+
+.numOfViewers {
+  padding-left: 10px;
+  font-size: 2.2em;
+ color: rgb(0, 255, 0);
+}
+
+.fa-user {
+  color: red;
+}
+
+.streamTitle {
+  margin-bottom: 0px;
+}
+
+.streamerLogo {
+  width: 75px;
+  height: 75px;
+}
+
+
+footer {
+  background-color: #673AB7;
+  height: 50px;
+  color: white;
+}
+
+footer p {
+  margin-top: 20px;
+  padding-top: 15px;
+}
+</style>
+</head>
+
+<body>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/pubnub/3.7.7/pubnub.js"></script>
+
+<div id="example"></div>
+<h1 class="row page-title text-center">Fhir monitor</h1>
+<div id="app"></div>
+<spo></spo>
+<button className="btn" id="start">Start</button>
+<button className="btn" id="stop" >Stop</button>
+    <script type="text/babel">
+
+const   pubnub = PUBNUB({
+        publish_key : 'pub-c-3f8a91d6-9bed-4650-baba-c08df033f657',
+        subscribe_key : 'sub-c-b6b3acea-5147-11e6-8b3b-02ee2ddab7fe',
+        ssl: true
+    })
+
+const channel = 'fhir';
+let name=""
+let formatted=""
+let mrnum=""
+let age = 0
+let dob = ""
+let idd = ""
+class Dashboard extends React.Component {
+
+	constructor(props) {
+    super(props);
+    this.state = {
+      data: [],
+      count: 0,
+      fullname:"",
+      mrn: "",
+      age: 0,
+      idd: ""
+
+    }
+     this.handleClick = this.handleClick.bind(this)
+     this.handleClic = this.handleClic.bind(this)
+  }
+
+
+
+                      //you will then store your queryed patient in a varible
+
+// Create a patient banner by fetching + rendering demographics
+
+
+    componentWillMount() {
+
+
+    pubnub.subscribe({
+    channel : channel,
+    message:  (message, envelope, channelOrGroup, time, channel) =>  {
+            console.log(
+                "Message Received." + "\n" +
+                "Channel or Group : " + JSON.stringify(channelOrGroup) + "\n" +
+                "Channel : " + JSON.stringify(channel) + "\n" +
+                "Message : " + JSON.stringify(message) + "\n" +
+                "Time : " + time + "\n" +
+                "Raw Envelope : " + JSON.stringify(envelope)
+                      )
+ 	this.success(message)
+ 	}
+});
+
+
+}
+
+getPatient(idd){
+
+	var demo = {
+    serviceUrl: "https://fhir-open-api-dstu2.smarthealthit.org",        //allows you to connect to your smar server and query a patient
+    patientId: idd // josuah p willams hca-pat-55 1137192
+    };
+
+// Create a FHIR client (server URL, patient id in `demo`)
+var smart = FHIR.client(demo),
+    pt = smart.patient;
+
+pt.read()
+    .then( (p)=> {
+     name = p.name[0];
+     formatted = name.given.join(" ") + " " + name.family;
+     mrnum = p.id
+     dob = new XDate(p.birthDate);
+     age = Math.floor(dob.diffYears(new XDate()));
+     this.fetchProfile(formatted, mrnum, age);
+     console.log(age)
+});
+}
+
+  success(message) {
+     this.setState({
+      count: message
+    });
+
+  }
+
+  handleClick(iddd){
+
+    this.getPatient(iddd)
+  }
+
+
+   handleClic(iddd){
+    this.getPatient(iddd)
+  }
+
+  fetchProfile(formatted, mrnnum, age) {
+
+   this.setState({
+     fullname: formatted,
+     mrn: mrnum,
+     age: age
+    });
+
+ console.log(this.state.fullname)
+
+  }
+
+
+  render () {
+    return (
+      <div>
+        <PatientVitals  count={this.state.count}  mrn={this.state.mrn} age={this.state.age} fullname={this.state.fullname}/>
+        <PatientName  count={this.state.count} mrn={this.state.mrn} age={this.state.age} fullname={this.state.fullname}/>
+        <Vitals  count={this.state.count}/>
+        <PatientVitalsSp  count={this.state.count}  mrn={this.state.mrn} age={this.state.age} fullname={this.state.fullname}/>
+        <PatientVitalsBp  count={this.state.count}  mrn={this.state.mrn} age={this.state.age} fullname={this.state.fullname}/>
+        <h1>{this.state.fullname}</h1>
+        <button class='button button-blue'  onClick={()=>this.handleClick("9995679")}>
+       <b> OK!</b>
+       </button>
+        <button class='button button-blue'  onClick={()=>this.handleClic("99912345")}>
+       <b> OK!</b>
+       </button>
+      </div>
+
+    );
+  }
+}
+
+
+
+class PatientName extends React.Component {
+  render () {
+    return (
+      <div className="container twitchSearchApp">
+         <div className="row">
+        <div className="stuff">
+          <ul id="streamerList" className="list-group">
+            <li className="list-group-item streamers">
+              <a>
+               <PatientInfo count={this.props.count} mrn={this.props.mrn} age={this.props.age} fullname={this.props.fullname}/>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      </div>
+    );
+  }
+}
+
+class Vitals extends React.Component {
+  render () {
+    return (
+      <div className="container twitchSearchApp">
+         <div className="row">
+        <div className="stuff">
+          <ul id="streamerList" className="list-group">
+            <li className="list-group-item streamers">
+              <a>
+                <PulseOx count={this.props.count}/>
+              </a>
+                <a>
+                <BloodPressure />
+              </a>
+
+            </li>
+          </ul>
+        </div>
+      </div>
+      </div>
+    );
+  }
+}
+
+class PatientVitals extends React.Component {
+  render () {
+    return (
+      <div className="container twitchSearchApp">
+         <div className="row">
+        <div className="stuff">
+          <ul id="streamerList" className="list-group">
+            <li className="list-group-item streamers">
+              <a>
+               <PatientInfo count={this.props.count} mrn={this.props.mrn} fullname={this.props.fullname}  age={this.props.age}/>
+                <PulseOx count={this.props.count} />
+                <BloodPressure />
+              </a>
+
+            </li>
+          </ul>
+        </div>
+      </div>
+      </div>
+    );
+  }
+}
+
+class PatientVitalsSp extends React.Component {
+  render () {
+    return (
+      <div className="container twitchSearchApp">
+         <div className="row">
+        <div className="stuff">
+          <ul id="streamerList" className="list-group">
+            <li className="list-group-item streamers">
+              <a>
+               <PatientInfo count={this.props.count} mrn={this.props.mrn} fullname={this.props.fullname}  age={this.props.age}/>
+                <PulseOx count={this.props.count} />
+              </a>
+
+            </li>
+          </ul>
+        </div>
+      </div>
+      </div>
+    );
+  }
+}
+
+class PatientVitalsBp extends React.Component {
+  render () {
+    return (
+      <div className="container twitchSearchApp">
+         <div className="row">
+        <div className="stuff">
+          <ul id="streamerList" className="list-group">
+            <li className="list-group-item streamers">
+              <a>
+               <PatientInfo count={this.props.count} mrn={this.props.mrn} fullname={this.props.fullname}  age={this.props.age}/>
+                <BloodPressure />
+              </a>
+
+            </li>
+          </ul>
+        </div>
+      </div>
+      </div>
+    );
+  }
+}
+
+class PatientInfo extends React.Component {
+  render () {
+    return (
+    			<div>
+                <span className="streamerGame"><strong>Name: </strong>{this.props.fullname} |<strong>Age: </strong>{this.props.age} |<strong>MRN:{this.props.mrn} </strong></span>
+                <p className="streamTitle"></p>
+              </div>
+    );
+  }
+}
+		var styleHigh = {
+  color: 'red'
+};
+
+	var styleNormal = {
+  color: "rgb(0,255,0)"
+};
+
+class PulseOx extends React.Component {
+
+  render () {
+  	let raj=1;
+  	if(raj>0)
+    return (
+    			<div>
+              <span className="streamerName">SPO2</span>
+              <span style={this.props.count>=95 ? styleNormal : styleHigh} className="numOfViewers">{this.props.count}%</span>
+              </div>
+    );
+    else
+     return (
+    			<div>
+              <span className="streamerName">S</span>
+              <span style={this.props.count>=95 ? styleNormal : styleHigh} className="numOfViewers">{this.props.count}%</span>
+              </div>
+    );
+  }
+}
+
+
+class BloodPressure extends React.Component {
+
+  render () {
+    return (
+    			<div>
+              <span className="streamerName">BP</span>
+              <span className="numOfViewers">120/80 mmHg</span>
+              </div>
+    );
+  }
+}
+
+
+ReactDOM.render(
+  <Dashboard />,
+  document.getElementById('app')
+);
+    </script>
+
+</body>
+<script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script type="text/javascript" src="https://cdn.rawgit.com/smart-on-fhir/client-js/v0.1.1/dist/fhir-client.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.1.0/react.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.1.0/react-dom.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/remarkable/1.6.2/remarkable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/xdate/0.8/xdate.min.js"></script>
+<script src="./spo2.js"> </script>
+
+
+</html>
